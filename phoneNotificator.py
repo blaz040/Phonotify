@@ -6,8 +6,8 @@ from google_play_scraper import app
 from PIL import Image
 
 App_ID = "Notification from Phone"
-AppIconFoundPath = "C:\\Users\\Blaz\\Documents\\faks\\python\\SANDBOX\\icons\\recentApp_icon.png"
-AppIconNotFoundPath = "C:\\Users\\Blaz\\Documents\\faks\\python\\SANDBOX\\icons\\NotFound_icon.png"
+AppIconFoundPath = "C:\\Users\\Blaz\\Documents\\faks\\Phonotify\\icons\\recentApp_icon.png"
+AppIconNotFoundPath = "C:\\Users\\Blaz\\Documents\\faks\\Phonotify\\icons\\NotFound_icon.png"
 notificationServiceUUID = "91d76000-ac7b-4d70-ab3a-8b87a357239e"
 
 titleCharacteristicUUID = "91d76001-ac7b-4d70-ab3a-8b87a357239e"
@@ -24,9 +24,9 @@ characteristics = {
 }
 
 phone_name = "Redmi"   
+connected = True
+    
 async def main():   
-    connected = True
-             
     async def notification_handler(sender: BleakGATTCharacteristic, data):
         icon_path = AppIconNotFoundPath
         name = characteristics[sender.uuid]
@@ -44,8 +44,8 @@ async def main():
             print(icon.status_code," ",icon.encoding)
             print(icon)
             icon_path = AppIconFoundPath
-        except NameError:
-            print(f"Icon err: {NameError}")
+        except Exception as e:
+            print(f"Icon err: {e}")
         toast = Notification(app_id = App_ID,
                             title = title,
                             msg = context,
@@ -74,6 +74,7 @@ async def main():
     
     def disconnected_callback(client: BleakClient): 
         print("\n============================================\n")
+        global connected 
         connected = False
         print(f"Disconnected from {client.name}:{client.address}")
         print("\n============================================\n")
@@ -88,6 +89,7 @@ async def main():
                 print(f"     Characteristic {c}")
         
         print("\n============================================\n")
+        
     async def subscribing_to_notifications(client:BleakClient):
         print("Subscribing for notifications:")
             
@@ -95,8 +97,8 @@ async def main():
             name = characteristics[notifyCompleteCharacteristicUUID]
             await client.start_notify(notifyCompleteCharacteristicUUID, notification_handler)
             print(f"  {name}: Notificiation enabled")
-        except NameError:
-            print(f"  Couldn't subscribe to {name} {notifyCompleteCharacteristicUUID}: {NameError}")
+        except Exception as e:
+            print(f"  Couldn't subscribe to {name} {notifyCompleteCharacteristicUUID}: {e}")
         """
             for UUID in characteristics.keys():
                 name = characteristics[UUID]
@@ -126,23 +128,26 @@ async def main():
         print(f"Connecting... to {phone_name}:{address}")
         try:
             await client.connect()
-        except NameError:
-            print(f"Connection Error {NameError}")
+        except Exception as e:
+            print(f"Connection Error {e}")
             return False
         print(f"Connected: {address} : {client.is_connected}")
         return True
     
     
     while True:
+        global connected
         device = await scan()
         client = BleakClient(device,disconnected_callback)
+        
         connected = await connect(client,device)
         if connected :
             await printServices(client)
             await subscribing_to_notifications(client)
         
             print("Listening....")
-            while connected : i=1
+            while connected: 
+                await asyncio.sleep(1)
         #await asyncio.sleep(999)
     
     #await connect(device)
