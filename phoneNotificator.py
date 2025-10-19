@@ -16,12 +16,14 @@ contextCharacteristicUUID = "91d76002-ac7b-4d70-ab3a-8b87a357239e"
 packageCharacteristicUUID = "91d76003-ac7b-4d70-ab3a-8b87a357239e"
 
 notifyCompleteCharacteristicUUID = "91d76004-ac7b-4d70-ab3a-8b87a357239e"
+disconnectCharacteristicUUID = "91d76005-ac7b-4d70-ab3a-8b87a357239e"
 
 characteristics = {
     titleCharacteristicUUID: "title",
     contextCharacteristicUUID: "context",
     packageCharacteristicUUID: "package",
-    notifyCompleteCharacteristicUUID: "Notifier"
+    notifyCompleteCharacteristicUUID: "Notifier",
+    disconnectCharacteristicUUID: "disconnect"
 }
 
 log.basicConfig(
@@ -34,12 +36,11 @@ phone_name = "Redmi"
 connected = True
 
 client:BleakClient = None
+
 def reconnect():
     global client
-    global connected
     if client != None:
         asyncio.run(client.disconnect())
-    connected = False
     
 async def main():   
     async def notification_handler(sender: BleakGATTCharacteristic, data):
@@ -69,7 +70,11 @@ async def main():
                             duration = "short")
         toast.show()
         log.info(f"Notification from {name}: {package}")
-    
+        
+    async def disconnect_request_callback(sender: BleakGATTCharacteristic, data): 
+        global client
+        await client.disconnect()
+        
     async def scan()->BLEDevice:  
         log.info("\n============================================\n")
         device:BLEDevice = None    
@@ -84,7 +89,6 @@ async def main():
                     device = d
                     log.info(f"Found {phone_name}:{d.address}")
                     return d
-                    break
             i+=1
         return device
     
@@ -113,6 +117,10 @@ async def main():
             name = characteristics[notifyCompleteCharacteristicUUID]
             await client.start_notify(notifyCompleteCharacteristicUUID, notification_handler)
             log.info(f"  {name}: Notificiation enabled")
+            name = characteristics[disconnectCharacteristicUUID]
+            await client.start_notify(disconnectCharacteristicUUID,disconnect_request_callback)
+            log.info(f"  {name}: Notificiation enabled")
+            
         except Exception as e:
             log.error(f"  Couldn't subscribe to {name} {notifyCompleteCharacteristicUUID}: {e}")
         """
