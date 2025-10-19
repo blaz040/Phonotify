@@ -1,9 +1,9 @@
 import asyncio
-from bleak import BleakClient, BleakScanner, BleakGATTCharacteristic, BLEDevice
+from bleak import BleakClient,BleakScanner, BleakGATTCharacteristic, BLEDevice
 from winotify import Notification
 import requests
 from google_play_scraper import app
-import logging as log
+from logAPI import log
 
 Notification_Name = "Notification from Phone"
 
@@ -25,13 +25,6 @@ characteristics = {
     notifyCompleteCharacteristicUUID: "Notifier",
     disconnectCharacteristicUUID: "disconnect"
 }
-
-log.basicConfig(
-    filename="myLogs.log",
-    level=log.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
 phone_name = "Redmi"   
 connected = True
 

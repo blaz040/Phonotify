@@ -1,16 +1,23 @@
 import tkinter as tk
 from tkinter import Tk, Listbox
-
+from logAPI import log
 root:Tk = None
 after_id:str = ""
 def run():
     global root
     readLines = 0
+    
+    def on_closing():
+        global root 
+        root.destroy()
+        root = None
+        
         
     def scrolled_down(myList:Listbox) -> bool:
         return myList.yview()[1] == 1.0
 
     def update_logs(myList:Listbox):
+        global root
         global after_id
         nonlocal readLines
         scrolled_d = scrolled_down(myList)
@@ -33,7 +40,7 @@ def run():
 
     root = tk.Tk() 
     root.title("Live Logs")
-    
+    root.protocol("WM_DELETE_WINDOW", on_closing)
     scrollbar = tk.Scrollbar(root)
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     
@@ -50,11 +57,12 @@ def run():
 def end():
     global root
     global after_id
-    if(root == None):
+    if root is None:
         return
     #root.quit()
     if after_id != "":
         root.after_cancel(after_id)
         after_id = ""
+    #log.info(f"{root}")
     root.destroy()
     root = None

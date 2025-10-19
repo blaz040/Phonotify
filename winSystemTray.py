@@ -1,14 +1,8 @@
 from pystray import Icon, Menu, MenuItem
 from PIL import Image, ImageDraw
 import threading
-import time
-import sys
-
 import phoneNotificator as pn
-
 import logsUI as logUI
-
-import logging as logAPI
 
 App_name = "Phonotify"
 def create_image():

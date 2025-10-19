@@ -1,0 +1,1 @@
+pyinstaller --onefile --name Phonotify --add-data="icons/:icons/" --noconsole .\winSystemTray.py
