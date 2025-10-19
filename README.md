@@ -1,6 +1,6 @@
 # Phonotify
 
-  This is source code for PC's side of Phonotify. The [android's side of Phonotify](https://github.com/blaz040/Phonotify_android) is needded to work. 
+  This is source code for PC's side of Phonotify. The [android's side of Phonotify](https://github.com/blaz040/Phonotify_android) is needed to work. 
 
 ## Installation
 
