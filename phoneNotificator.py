@@ -7,8 +7,10 @@ from logAPI import log
 
 Notification_Name = "Notification from Phone"
 
-AppIconFoundPath = "C:\\Users\\Blaz\\Documents\\faks\\Phonotify\\icons\\recentApp_icon.png"
-AppIconNotFoundPath = "C:\\Users\\Blaz\\Documents\\faks\\Phonotify\\icons\\NotFound_icon.png"
+icon_folder_path = "C:\\Users\\Blaz\\Documents\\faks\\Phonotify\\icons\\"
+
+AppIconFoundPath = icon_folder_path + "recentApp_icon.png"
+AppIconNotFoundPath = icon_folder_path + "NotFound_icon.png"
 notificationServiceUUID = "91d76000-ac7b-4d70-ab3a-8b87a357239e"
 
 titleCharacteristicUUID = "91d76001-ac7b-4d70-ab3a-8b87a357239e"
