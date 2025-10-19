@@ -6,7 +6,10 @@ import sys
 
 import phoneNotificator as pn
 
-import logsUI as log
+import logsUI as logUI
+
+import logging as logAPI
+
 App_name = "Phonotify"
 def create_image():
     image = Image.new('RGB', (64, 64), color=(0, 255, 0))
@@ -15,7 +18,7 @@ def create_image():
     return image
 
 def on_exit(icon, item):
-    log.end()
+    logUI.end()
     icon.stop()
     
 
@@ -23,7 +26,7 @@ def on_reconnect():
     pn.reconnect()
     
 def show_logs():
-    log.run()
+    logUI.run()
     
 def app_icon():
     icon = Icon(App_name, create_image(), App_name, menu=Menu(

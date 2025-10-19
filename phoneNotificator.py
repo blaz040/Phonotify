@@ -3,7 +3,7 @@ from bleak import BleakClient, BleakScanner, BleakGATTCharacteristic, BLEDevice
 from winotify import Notification
 import requests
 from google_play_scraper import app
-import logging
+import logging as log
 
 Notification_Name = "Notification from Phone"
 
@@ -24,20 +24,26 @@ characteristics = {
     notifyCompleteCharacteristicUUID: "Notifier"
 }
 
-logging.basicConfig(
+log.basicConfig(
     filename="myLogs.log",
-    level=logging.INFO,
+    level=log.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+)
+
 phone_name = "Redmi"   
 connected = True
-    
+
+client:BleakClient = None
 def reconnect():
+    global client
     global connected
+    if client != None:
+        asyncio.run(client.disconnect())
     connected = False
     
 async def main():   
     async def notification_handler(sender: BleakGATTCharacteristic, data):
+        global client
         icon_path = AppIconNotFoundPath
         name = characteristics[sender.uuid]
         if(client is not None):
@@ -51,64 +57,64 @@ async def main():
             icon = requests.get(res["icon"])
             with open(AppIconFoundPath, "wb") as f:
                 f.write(icon.content)
-            logging.info(f"{icon.status_code} {icon.encoding}")
+            log.info(f"{icon.status_code} {icon.encoding}")
             #print(icon)
             icon_path = AppIconFoundPath
         except Exception as e:
-            logging.error(f"Icon err: {e}")
+            log.error(f"Icon err: {e}")
         toast = Notification(app_id = Notification_Name,
                             title = title,
                             msg = context,
                             icon = icon_path,
                             duration = "short")
         toast.show()
-        logging.info(f"Notification from {name}: {package}")
+        log.info(f"Notification from {name}: {package}")
     
     async def scan()->BLEDevice:  
-        logging.info("\n============================================\n")
+        log.info("\n============================================\n")
         device:BLEDevice = None    
         # Scan for devices
         i = 1
         while device == None:
-            logging.info(f"{i}: Scanning for name {phone_name}")
+            log.info(f"{i}: Scanning for name {phone_name}")
             devices = await BleakScanner.discover(timeout=4)
             for d in devices:
-                if d.name != None :logging.info(f"  {d}")
+                if d.name != None :log.info(f"  {d}")
                 if d.name == phone_name: 
                     device = d
-                    logging.info(f"Found {phone_name}:{d.address}")
+                    log.info(f"Found {phone_name}:{d.address}")
                     return d
                     break
             i+=1
         return device
     
     def disconnected_callback(client: BleakClient): 
-        logging.info("\n============================================\n")
+        log.info("\n============================================\n")
         global connected 
         connected = False
-        logging.warning(f"Disconnected from {client.name}:{client.address}")
-        logging.info("\n============================================\n")
+        log.warning(f"Disconnected from {client.name}:{client.address}")
+        log.info("\n============================================\n")
     
     async def printServices(client:BleakClient):
-        logging.info("\n============================================\n")
+        log.info("\n============================================\n")
             
-        logging.info(f"Printing Services and Characteristics")
+        log.info(f"Printing Services and Characteristics")
         for s in client.services:
-            logging.info(f"Services {s}")
+            log.info(f"Services {s}")
             for c in s.characteristics:
-                logging.info(f"     Characteristic {c}")
+                log.info(f"     Characteristic {c}")
         
-        logging.info("\n============================================\n")
+        log.info("\n============================================\n")
         
     async def subscribing_to_notifications(client:BleakClient):
-        logging.info("Subscribing for notifications:")
+        log.info("Subscribing for notifications:")
             
         try:
             name = characteristics[notifyCompleteCharacteristicUUID]
             await client.start_notify(notifyCompleteCharacteristicUUID, notification_handler)
-            logging.info(f"  {name}: Notificiation enabled")
+            log.info(f"  {name}: Notificiation enabled")
         except Exception as e:
-            logging.error(f"  Couldn't subscribe to {name} {notifyCompleteCharacteristicUUID}: {e}")
+            log.error(f"  Couldn't subscribe to {name} {notifyCompleteCharacteristicUUID}: {e}")
         """
             for UUID in characteristics.keys():
                 name = characteristics[UUID]
@@ -122,30 +128,31 @@ async def main():
     async def readChar(UUID: str)->bytearray:
         titleCharacteristicUUID = UUID
         # Read a characteristic (example UUID)
-        logging.info(f"Reading from {titleCharacteristicUUID}")
+        log.info(f"Reading from {titleCharacteristicUUID}")
         value = await client.read_gatt_char(titleCharacteristicUUID)
-        logging.info(f"Read value: {str(value,'utf-8')}")
+        log.info(f"Read value: {str(value,'utf-8')}")
         
-        logging.info("\n============================================\n")
+        log.info("\n============================================\n")
         
         return value
              
     # Connecting....
     async def connect(client:BleakClient, device:BLEDevice)->bool:
         address = device.address
-        logging.info("\n============================================\n")
+        log.info("\n============================================\n")
         #print(f"Found {phone_name}:{address}")
-        logging.info(f"Connecting... to {phone_name}:{address}")
+        log.info(f"Connecting... to {phone_name}:{address}")
         try:
             await client.connect()
         except Exception as e:
-            logging.error(f"Connection Error {e}")
+            log.error(f"Connection Error {e}")
             return False
-        logging.info(f"Connected: {address} : {client.is_connected}")
+        log.info(f"Connected: {address} : {client.is_connected}")
         return True
     
     
     while True:
+        global client
         global connected
         device = await scan()
         client = BleakClient(device,disconnected_callback)
@@ -155,13 +162,10 @@ async def main():
             await printServices(client)
             await subscribing_to_notifications(client)
         
-            logging.info("Listening....")
+            log.info("Listening....")
+                
             while connected: 
-                await asyncio.sleep(1)
-        #await asyncio.sleep(999)
-    
-    #await connect(device)
-    
+                    await asyncio.sleep(1)
             
 def run():     
     asyncio.run(main())
