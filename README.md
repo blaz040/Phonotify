@@ -5,7 +5,7 @@
 ## Installation
 
   1. Download git in desired folder.
-  2. Set up the current path -> in ``phoneNotificator.py`` on ``line 10`` change the ``icons_folder_path`` to the current ``/icons folder path``.
+  2. Set up the current path -> in ``phoneNotificator.py`` on ``line 10`` change the ``current_folder_path`` to the current ``folder path``.
   3. run ``pip install -r requirements.txt``
   4. Run ``Compiler.bat``. 
 
