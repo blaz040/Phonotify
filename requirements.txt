@@ -1,0 +1,6 @@
+pyinstaller
+pystray
+bleak
+winotify
+requests
+google_play_scraper
