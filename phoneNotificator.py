@@ -6,8 +6,8 @@ from google_play_scraper import app
 from logAPI import log
 
 Notification_Name = "Notification from Phone"
-current_folder_path = "E:\Github\Phonotify" 
-icon_folder_path = current_folder_path +"icons\\"
+current_folder_path = "E:\\Github\\Phonotify" 
+icon_folder_path = current_folder_path +"\\icons\\"
 
 AppIconFoundPath = icon_folder_path + "recentApp_icon.png"
 AppIconNotFoundPath = icon_folder_path + "NotFound_icon.png"
@@ -50,7 +50,6 @@ async def main():
         
         try:
             res = app(package)
-            #print(res["icon"])
             icon = requests.get(res["icon"])
             with open(AppIconFoundPath, "wb") as f:
                 f.write(icon.content)
@@ -59,6 +58,7 @@ async def main():
             icon_path = AppIconFoundPath
         except Exception as e:
             log.error(f"Icon err: {e}")
+            
         toast = Notification(app_id = Notification_Name,
                             title = title,
                             msg = context,

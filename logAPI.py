@@ -1,10 +1,9 @@
 import logging
-
+logPath:str="myLogs.log"
 logging.basicConfig(
-    filename="myLogs.log",
+    filename=logPath,
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
 log = logging
 

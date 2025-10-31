@@ -15,7 +15,6 @@ def on_exit(icon, item):
     logUI.end()
     icon.stop()
     
-
 def on_reconnect():
     pn.reconnect()
     
@@ -23,11 +22,13 @@ def show_logs():
     logUI.run()
     
 def app_icon():
+    # MENU
     icon = Icon(App_name, create_image(), App_name, menu=Menu(
         MenuItem("Recconect",on_reconnect),
-        MenuItem("Logs",show_logs),
+        MenuItem("Logs",show_logs,default=True),
         MenuItem("Exit", on_exit)
     ))
+    
     icon.run()
 
 def main():
