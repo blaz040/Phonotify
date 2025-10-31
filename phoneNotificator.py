@@ -6,8 +6,7 @@ from google_play_scraper import app
 from logAPI import log
 
 Notification_Name = "Notification from Phone"
-
-current_folder_path = "E:\\Phonotify\\" 
+current_folder_path = "E:\Github\Phonotify" 
 icon_folder_path = current_folder_path +"icons\\"
 
 AppIconFoundPath = icon_folder_path + "recentApp_icon.png"
