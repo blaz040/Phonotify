@@ -11,6 +11,8 @@ icon_folder_path = current_folder_path +"\\icons\\"
 
 AppIconFoundPath = icon_folder_path + "recentApp_icon.png"
 AppIconNotFoundPath = icon_folder_path + "NotFound_icon.png"
+CheckIconPath = icon_folder_path + "check.png"
+CrossIconPath = icon_folder_path + "cross.png"
 
 notificationServiceUUID = "91d76000-ac7b-4d70-ab3a-8b87a357239e"
 
@@ -37,7 +39,15 @@ def reconnect():
     global client
     if client != None:
         asyncio.run(client.disconnect())
-    
+def showNotification(title:str,context:str,icon_path:str,duration:str="short"):
+
+    toast = Notification(app_id = Notification_Name,
+                            title = title,
+                            msg = context,
+                            icon = icon_path,
+                            duration = duration)
+    toast.show()
+
 async def main():   
     async def notification_handler(sender: BleakGATTCharacteristic, data):
         global client
@@ -58,13 +68,9 @@ async def main():
             icon_path = AppIconFoundPath
         except Exception as e:
             log.error(f"Icon err: {e}")
-            
-        toast = Notification(app_id = Notification_Name,
-                            title = title,
-                            msg = context,
-                            icon = icon_path,
-                            duration = "short")
-        toast.show()
+        
+        showNotification(title,context,icon_path)
+
         log.info(f"Notification from {name}: {package}")
         
     async def disconnect_request_callback(sender: BleakGATTCharacteristic, data): 
@@ -93,6 +99,7 @@ async def main():
         global connected 
         connected = False
         log.warning(f"Disconnected from {client.name}:{client.address}")
+        showNotification("Disconnected ",f"Disconnected from {client.name}:{client.address}",CrossIconPath)
         log.info("\n============================================\n")
     
     async def printServices(client:BleakClient):
@@ -152,6 +159,9 @@ async def main():
             log.error(f"Connection Error {e}")
             return False
         log.info(f"Connected: {address} : {client.is_connected}")
+
+        showNotification("Connected ",f"connected to {phone_name}:{address}",CheckIconPath)
+        
         return True
     
     
