@@ -5,7 +5,13 @@ import requests
 from google_play_scraper import app
 from logAPI import log
 
+# =============================== Main variables ================================================= 
 Notification_Name = "Notification from Phone"
+phone_name = "Redmi"  
+connected = True
+client:BleakClient = None
+
+# =============================== Path's ================================================= 
 current_folder_path = "E:\\Github\\Phonotify" 
 icon_folder_path = current_folder_path +"\\icons\\"
 
@@ -14,6 +20,7 @@ AppIconNotFoundPath = icon_folder_path + "NotFound_icon.png"
 CheckIconPath = icon_folder_path + "check.png"
 CrossIconPath = icon_folder_path + "cross.png"
 
+# =============================== UUID'S ================================================= 
 notificationServiceUUID = "91d76000-ac7b-4d70-ab3a-8b87a357239e"
 
 titleCharacteristicUUID = "91d76001-ac7b-4d70-ab3a-8b87a357239e"
@@ -23,6 +30,7 @@ packageCharacteristicUUID = "91d76003-ac7b-4d70-ab3a-8b87a357239e"
 notifyCompleteCharacteristicUUID = "91d76004-ac7b-4d70-ab3a-8b87a357239e"
 disconnectCharacteristicUUID = "91d76005-ac7b-4d70-ab3a-8b87a357239e"
 
+# =============================== Characteristics ================================================= 
 characteristics = {
     titleCharacteristicUUID: "title",
     contextCharacteristicUUID: "context",
@@ -30,15 +38,13 @@ characteristics = {
     notifyCompleteCharacteristicUUID: "Notifier",
     disconnectCharacteristicUUID: "disconnect"
 }
-phone_name = "Redmi"   
-connected = True
 
-client:BleakClient = None
-
+# =============================== Help funcitions =================================================
 def reconnect():
     global client
-    if client != None:
+    if client != None and client.is_connected:
         asyncio.run(client.disconnect())
+
 def showNotification(title:str,context:str,icon_path:str,duration:str="short"):
 
     toast = Notification(app_id = Notification_Name,
@@ -47,8 +53,9 @@ def showNotification(title:str,context:str,icon_path:str,duration:str="short"):
                             icon = icon_path,
                             duration = duration)
     toast.show()
-
+# =============================== Main =================================================
 async def main():   
+    # =============================== Notify Handle functions =================================================
     async def notification_handler(sender: BleakGATTCharacteristic, data):
         global client
         icon_path = AppIconNotFoundPath
@@ -72,13 +79,53 @@ async def main():
         showNotification(title,context,icon_path)
 
         log.info(f"Notification from {name}: {package}")
-        
-    async def disconnect_request_callback(sender: BleakGATTCharacteristic, data): 
+
+    async def disconnect_notify_callback(sender: BleakGATTCharacteristic, data): 
         global client
+        log.info("============================================\n")
+        log.info("Sending disconect acknowledge message")
+        await client.write_gatt_char(sender,bytearray("ACK",'utf-8'),response=False)
+        log.info("============================================\n")
         await client.disconnect()
+    
+    async def readChar(UUID: str)->bytearray:
+        titleCharacteristicUUID = UUID
+        # Read a characteristic (example UUID)
+        log.info(f"Reading from {titleCharacteristicUUID}")
+        value = await client.read_gatt_char(titleCharacteristicUUID)
+        log.info(f"Read value: {str(value,'utf-8')}")
         
+        log.info("============================================\n")
+        
+        return value
+             
+    # =============================== Subscribing =================================================   
+    async def subscribing_to_notifications(client:BleakClient):
+        log.info("Subscribing for notifications:")
+            
+        try:
+            name = characteristics[notifyCompleteCharacteristicUUID]
+            await client.start_notify(notifyCompleteCharacteristicUUID, notification_handler)
+            log.info(f"  {name}: Notificiation enabled")
+            name = characteristics[disconnectCharacteristicUUID]
+            await client.start_notify(disconnectCharacteristicUUID,disconnect_notify_callback)
+            log.info(f"  {name}: Notificiation enabled")
+            
+        except Exception as e:
+            log.error(f"  Couldn't subscribe to {name} {notifyCompleteCharacteristicUUID}: {e}")
+        """
+            for UUID in characteristics.keys():
+                name = characteristics[UUID]
+                try:
+                    await client.start_notify(UUID, notification_handler)
+                    print(f"  {name}: Notificiation enabled")
+                except NameError:
+                    print(f"  Couldn't subscribe to {name} {UUID}: {NameError}")
+            print("============================================\n")
+            """
+    # =============================== Scan ================================================= 
     async def scan()->BLEDevice:  
-        log.info("\n============================================\n")
+        log.info("============================================\n")
         device:BLEDevice = None    
         # Scan for devices
         i = 1
@@ -94,16 +141,8 @@ async def main():
             i+=1
         return device
     
-    def disconnected_callback(client: BleakClient): 
-        log.info("\n============================================\n")
-        global connected 
-        connected = False
-        log.warning(f"Disconnected from {client.name}:{client.address}")
-        showNotification("Disconnected ",f"Disconnected from {client.name}:{client.address}",CrossIconPath)
-        log.info("\n============================================\n")
-    
     async def printServices(client:BleakClient):
-        log.info("\n============================================\n")
+        log.info("============================================\n")
             
         log.info(f"Printing Services and Characteristics")
         for s in client.services:
@@ -111,46 +150,21 @@ async def main():
             for c in s.characteristics:
                 log.info(f"     Characteristic {c}")
         
-        log.info("\n============================================\n")
-        
-    async def subscribing_to_notifications(client:BleakClient):
-        log.info("Subscribing for notifications:")
-            
-        try:
-            name = characteristics[notifyCompleteCharacteristicUUID]
-            await client.start_notify(notifyCompleteCharacteristicUUID, notification_handler)
-            log.info(f"  {name}: Notificiation enabled")
-            name = characteristics[disconnectCharacteristicUUID]
-            await client.start_notify(disconnectCharacteristicUUID,disconnect_request_callback)
-            log.info(f"  {name}: Notificiation enabled")
-            
-        except Exception as e:
-            log.error(f"  Couldn't subscribe to {name} {notifyCompleteCharacteristicUUID}: {e}")
-        """
-            for UUID in characteristics.keys():
-                name = characteristics[UUID]
-                try:
-                    await client.start_notify(UUID, notification_handler)
-                    print(f"  {name}: Notificiation enabled")
-                except NameError:
-                    print(f"  Couldn't subscribe to {name} {UUID}: {NameError}")
-            print("\n============================================\n")
-            """
-    async def readChar(UUID: str)->bytearray:
-        titleCharacteristicUUID = UUID
-        # Read a characteristic (example UUID)
-        log.info(f"Reading from {titleCharacteristicUUID}")
-        value = await client.read_gatt_char(titleCharacteristicUUID)
-        log.info(f"Read value: {str(value,'utf-8')}")
-        
-        log.info("\n============================================\n")
-        
-        return value
-             
+        log.info("============================================\n")
+
+    # =============================== Connection ================================================= 
+    def disconnected_callback(client: BleakClient): 
+        log.info("============================================\n")
+        global connected 
+        connected = False
+        log.warning(f"Disconnected from {client.name}:{client.address}")
+        showNotification("Disconnected ",f"Disconnected from {client.name}:{client.address}",CrossIconPath)
+        log.info("============================================\n")
+
     # Connecting....
     async def connect(client:BleakClient, device:BLEDevice)->bool:
         address = device.address
-        log.info("\n============================================\n")
+        log.info("============================================\n")
         #print(f"Found {phone_name}:{address}")
         log.info(f"Connecting... to {phone_name}:{address}")
         try:
@@ -164,7 +178,7 @@ async def main():
         
         return True
     
-    
+    # =============================== Main Loop ================================================= 
     while True:
         global client
         global connected
@@ -179,7 +193,9 @@ async def main():
             log.info("Listening....")
                 
             while connected: 
-                    await asyncio.sleep(1)
-            
-def run():     
+                await asyncio.sleep(1)
+
+# =============================== RUN ================================================= 
+def run():
     asyncio.run(main())
+   

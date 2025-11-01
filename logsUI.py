@@ -5,8 +5,6 @@ root:Tk = None
 after_id:str = ""
 
 def run():
-    global root
-    
     def on_closing():
         end()
         #global root 
@@ -59,9 +57,10 @@ def run():
         # start timer
         update_logs()
         
-
+    global root
     # checks if there is alvready a window open
-    end()
+    if is_showing(root):
+        return 
     root = Tk() 
     root.title("Live Logs")
     root.protocol("WM_DELETE_WINDOW", on_closing)
@@ -82,18 +81,32 @@ def run():
     root.config(menu=menubar)
     root.geometry('700x500')
     root.mainloop()
-    
-def end():
+
+def is_showing(root:Tk)->bool:
+
+    if root is None:
+        return False
+    # put at the top of the stack for a moment
+    # root.focus() crashed if it is at the top of the stack
+    root.attributes('-topmost', True)
+    root.attributes('-topmost', False)
+    return True
+
+def end()->bool:
     global root
     global after_id
 
     if root is None:
-        return
+        return False
     
     # Cancel the next updateLogs 
     if after_id != "":
         root.after_cancel(after_id)
         after_id = ""
-    
-    root.destroy()
+    try:
+        root.destroy()
+    except Exception as e:
+        log.error(f"Logs UI cant destroy... {e}")
     root = None
+    log.info("going on")
+    return True

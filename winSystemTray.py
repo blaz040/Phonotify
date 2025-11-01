@@ -32,11 +32,11 @@ def app_icon():
     icon.run()
 
 def main():
-    t = threading.Thread(target=lambda: [
-            pn.run()
-        ])
+
+    t = threading.Thread(target=pn.run)
     t.daemon = True
     t.start()
+    
     app_icon()
     
 if __name__ == "__main__":
