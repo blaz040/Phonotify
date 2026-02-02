@@ -14,7 +14,7 @@ import time
 
 # =============================== Main variables ================================================= 
 NOTIFICATION_NAME = "Notification from Phone"
-PHONE_NAME = "PhonotifyServer"
+PHONE_NAME = "phServer"
 
 running = True  
 connected = True 
@@ -22,10 +22,10 @@ client:BleakClient = None
 scan_counter = 0
 
  
-HEALTH_CHECK_INTERVAL = 3 # seconds 
+HEALTH_CHECK_INTERVAL = 15 # seconds 
 SCAN_DURATION = 3 #seconds
-MAX_SCAN_SLEEP_TIME = 2 * 60
-TAG = "BLE_thread"
+MAX_SCAN_SLEEP_TIME = 5 * 60
+TAG = "BLE THREAD: "
 
 # =============================== Path's ================================================= 
 # Get the folder where the script lives
@@ -40,42 +40,43 @@ CHECK_ICON_PATH = ICON_FOLDER_DIR / "check.png"
 CROSS_ICON_PATH = ICON_FOLDER_DIR / "cross.png"
 
 # =============================== UUID'S ================================================= 
-notificationServiceUUID             = "91d76000-ac7b-4d70-ab3a-8b87a357239e"
+NOTIFICATION_SERVICE_UUID               = "91d76000-ac7b-4d70-ab3a-8b87a357239e"
 
-titleCharacteristicUUID             = "91d76001-ac7b-4d70-ab3a-8b87a357239e"
-contextCharacteristicUUID           = "91d76002-ac7b-4d70-ab3a-8b87a357239e"
-packageCharacteristicUUID           = "91d76003-ac7b-4d70-ab3a-8b87a357239e"
-notifyCompleteCharacteristicUUID    = "91d76004-ac7b-4d70-ab3a-8b87a357239e"
-disconnectCharacteristicUUID        = "91d76005-ac7b-4d70-ab3a-8b87a357239e"
-healthCheckCharacteristicUUID       = "91d76006-ac7b-4d70-ab3a-8b87a357239e"
+TITLE_CHARACTERISTIC_UUID               = "91d76001-ac7b-4d70-ab3a-8b87a357239e"
+CONTEXT_CHARACTERISTIC_UUID             = "91d76002-ac7b-4d70-ab3a-8b87a357239e"
+PACKAGE_CHARACTERISTIC_UUID             = "91d76003-ac7b-4d70-ab3a-8b87a357239e"
+NOTIFY_COMPLETE_CHARACTERISTIC_UUID     = "91d76004-ac7b-4d70-ab3a-8b87a357239e"
+DISCONNECT_CHARACTERISTIC_UUID          = "91d76005-ac7b-4d70-ab3a-8b87a357239e"
+HEALTH_CHECK_CHARACTERISTIC_UUID        = "91d76006-ac7b-4d70-ab3a-8b87a357239e"
 
 # =============================== Characteristics ================================================= 
+# UUID to characteristic name 
 characteristics = {
-    titleCharacteristicUUID: "title",
-    contextCharacteristicUUID: "text context",
-    packageCharacteristicUUID: "package name",
-    notifyCompleteCharacteristicUUID: "notifier",
-    disconnectCharacteristicUUID: "disconnect",
-    healthCheckCharacteristicUUID: "health check"
+    TITLE_CHARACTERISTIC_UUID: "title",
+    CONTEXT_CHARACTERISTIC_UUID: "text context",
+    PACKAGE_CHARACTERISTIC_UUID: "package name",
+    NOTIFY_COMPLETE_CHARACTERISTIC_UUID: "notifier",
+    DISCONNECT_CHARACTERISTIC_UUID: "disconnect",
+    HEALTH_CHECK_CHARACTERISTIC_UUID: "health check"
 }
 #======================================= Intercptor ==========================================================
 def intercept_ble_call(func):
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         MAX_LOG_TEXT_SIZE = 50
-        text = f"=== Running {func.__name__} "
+        text = f"{TAG}=== Running {func.__name__} "
         log.info(f"{text:=<{MAX_LOG_TEXT_SIZE}}")
         start_time = time.perf_counter()
         try:
             result = await func(*args, **kwargs)
             return result
         except Exception as e:
-            log.error(f"Intercepted error in {func.__name__}: {e}")
+            log.info(f"{TAG}Intercepted error in {func.__name__}: {e}")
             raise
         finally:
             end_time = time.perf_counter()
 
-            text = f"=== Finished {func.__name__} in {end_time - start_time:.4f}s "
+            text = f"{TAG}=== Finished {func.__name__} in {end_time - start_time:.4f}s "
             log.info(f"{text:=<{MAX_LOG_TEXT_SIZE}}")
     return wrapper
 # =============================== Help funcitions =================================================
@@ -96,9 +97,9 @@ async def notification_handler(sender: BleakGATTCharacteristic, data):
     name = characteristics[sender.uuid]
 
     if(client is not None):
-        title   = str(await client.read_gatt_char(titleCharacteristicUUID),'utf-8')
-        context = str(await client.read_gatt_char(contextCharacteristicUUID),'utf-8')
-        package = str(await client.read_gatt_char(packageCharacteristicUUID),'utf-8')
+        title   = str(await client.read_gatt_char(TITLE_CHARACTERISTIC_UUID),'utf-8')
+        context = str(await client.read_gatt_char(CONTEXT_CHARACTERISTIC_UUID),'utf-8')
+        package = str(await client.read_gatt_char(PACKAGE_CHARACTERISTIC_UUID),'utf-8')
     
     try:
         res = app(package)
@@ -108,16 +109,16 @@ async def notification_handler(sender: BleakGATTCharacteristic, data):
             f.write(icon.content)
         icon_path = APP_ICON_PATH
     except Exception as e:
-        log.error(f"Icon err: {e}")
+        log.info(f"{TAG}Icon err: {e}")
     
     showNotification(title, context, icon_path)
-    log.info(f"Notification from {name}: {package}")
+    log.info(f"{TAG}Notification from {name}: {package}")
 
 @intercept_ble_call
 async def disconnect_notify_callback(sender: BleakGATTCharacteristic, data): 
     global client
     
-    log.info("Sending disconect acknowledge message")
+    log.info(f"{TAG}Sending disconect acknowledge message")
     await client.write_gatt_char(sender, bytearray("ACK",'utf-8'),response=False)
     
     await client.disconnect()
@@ -128,7 +129,7 @@ async def readChar(UUID: str) -> bytearray:
     characteristic_name = characteristics[UUID]
     value = await client.read_gatt_char(UUID)
 
-    log.info(f"Read {characteristic_name}: {str(value,'utf-8')}")
+    log.info(f"{TAG} Read {characteristic_name}: {str(value,'utf-8')}")
     
     return value
             
@@ -136,20 +137,20 @@ async def readChar(UUID: str) -> bytearray:
 @intercept_ble_call
 async def subscribing_to_notifications(client:BleakClient):
     
-    log.info("Subscribing for notifications:")
+    log.info(f"{TAG}Subscribing for notifications:")
     try:
         # Subscription for notification
-        name = characteristics[notifyCompleteCharacteristicUUID]
-        await client.start_notify(notifyCompleteCharacteristicUUID, notification_handler)
+        name = characteristics[NOTIFY_COMPLETE_CHARACTERISTIC_UUID]
+        await client.start_notify(NOTIFY_COMPLETE_CHARACTERISTIC_UUID, notification_handler)
         log.info(f"\t{name}: Notificiation enabled")
         
         # Subscription for disconnect characteristic
-        name = characteristics[disconnectCharacteristicUUID]
-        await client.start_notify(disconnectCharacteristicUUID, disconnect_notify_callback)
+        name = characteristics[DISCONNECT_CHARACTERISTIC_UUID]
+        await client.start_notify(DISCONNECT_CHARACTERISTIC_UUID, disconnect_notify_callback)
         log.info(f"\t{name}: Notificiation enabled")
         
     except Exception as e:
-        log.error(f"\tCouldn't subscribe to {name} {notifyCompleteCharacteristicUUID}: {e}")
+        log.info(f"{TAG}\tCouldn't subscribe to {name} {NOTIFY_COMPLETE_CHARACTERISTIC_UUID}: {e}")
     
     
     """
@@ -167,10 +168,29 @@ async def subscribing_to_notifications(client:BleakClient):
 async def scan() -> BLEDevice:  
     global scan_counter
     
+    
+    log.info(f" {TAG}Scanning for Service UUID: {NOTIFICATION_SERVICE_UUID}")
+    
+    # find_device_by_filter works on both OSs
+    device = await BleakScanner.find_device_by_filter(
+        lambda d, ad: NOTIFICATION_SERVICE_UUID in ad.service_uuids,
+        timeout=10.0
+    )
+    
+    if device:
+        # On Windows, device.name might be None here, and that's okay!
+        log.info(f" {TAG}Device found at {device.address}")
+        return device
+    return None
+    
     device: BLEDevice = None    
     # Scan for devices
+    devices = await BleakScanner(
+        detection_callback=detection_callback,
+        service_uuids=[NOTIFICATION_SERVICE_UUID]
+    )
+    #devices = await BleakScanner.discover(timeout=4)
     log.info(f"{scan_counter}: Scanning for name {PHONE_NAME}")
-    devices = await BleakScanner.discover(timeout=4)
     for d in devices:
         if d.name != None :log.info(f"\t{d}")
         if d.name == PHONE_NAME: 
@@ -183,7 +203,7 @@ async def scan() -> BLEDevice:
 @intercept_ble_call
 async def printServices(client:BleakClient):
     
-    log.info(f"Printing Services and Characteristics")
+    log.info(f"{TAG}Printing Services and Characteristics")
     for s in client.services:
         log.info(f"Services {s}")
         for c in s.characteristics:
@@ -195,7 +215,7 @@ def disconnected_callback(client: BleakClient):
     global connected 
     
     connected = False
-    log.warning(f"Disconnected from {client.name}:{client.address}")
+    log.warning(f"{TAG}Disconnected from {client.name}:{client.address}")
     showNotification("Disconnected ",f"Disconnected from {client.name}:{client.address}", CROSS_ICON_PATH)
     
 # Connecting....
@@ -203,13 +223,13 @@ def disconnected_callback(client: BleakClient):
 async def connect(client:BleakClient, device:BLEDevice) -> bool:
     address = device.address
     
-    log.info(f"Connecting... to {PHONE_NAME}:{address}")
+    log.info(f"{TAG}Connecting... to {PHONE_NAME}:{address}")
     try:
         await client.connect()
     except Exception as e:
-        log.error(f"Connection Error {e}")
+        log.info(f"{TAG}Connection Error {e}")
         return False
-    log.info(f"Connected: {address} : {client.is_connected}")
+    log.info(f"{TAG}Connected: {address} : {client.is_connected}")
 
     showNotification("Connected ",f"connected to {PHONE_NAME}:{address}", CHECK_ICON_PATH)
     
@@ -220,18 +240,19 @@ async def health_check(client: BleakClient):
     try:
         await asyncio.wait_for( 
             client.write_gatt_char(
-                healthCheckCharacteristicUUID, 
+                HEALTH_CHECK_CHARACTERISTIC_UUID, 
                 bytearray("ACK",'utf-8'),
                 response=False
             ), 
             1
         )
-        # ret =  await asyncio.wait_for(readChar(healthCheckCharacteristicUUID), 1)
-        log.info(f"Health check: OK")
+        # ret =  await asyncio.wait_for(readChar(HEALTH_CHECK_CHARACTERISTIC_UUID), 1)
+        log.info(f"{TAG}Health check: OK")
     except asyncio.TimeoutError:    
-        log.error(f"Health check: DOWN")
+        log.info(f"{TAG}Health check: DOWN")
     except BleakError as e: 
-        log.error(f"Health check: ERROR {e.__cause__}")
+        log.info(f"{TAG}Health check: ERROR ")
+        disconnect()
 
 async def periodic_task(client: BleakClient):
     loop = asyncio.get_running_loop()
@@ -243,7 +264,7 @@ async def periodic_task(client: BleakClient):
             await asyncio.sleep(max(0, next_run - loop.time()))
             await health_check(client)
     except asyncio.CancelledError:
-        log.info("Health check task stopped")
+        log.info(f"{TAG}Health check task stopped")
 
 # =============================== Main Loop =================================================
 @intercept_ble_call
@@ -260,8 +281,8 @@ async def main():
         device = await scan()
         if device is None: 
             scan_counter += 1
-            sleep_time = min(MAX_SCAN_SLEEP_TIME, 2* scan_counter)
-            log.info(f"Device not found. Sleeping for {sleep_time}s")
+            sleep_time = min(MAX_SCAN_SLEEP_TIME, 2*scan_counter)
+            log.info(f"{TAG}Device not found. Sleeping for {sleep_time}s")
             await asyncio.sleep(sleep_time)
             continue
         scan_counter = 0
@@ -276,34 +297,33 @@ async def main():
             
             health_task = asyncio.create_task(periodic_task(client))
             
-            log.info("Listening....")
+            log.info(f"{TAG}Listening....")
             try: 
                 while connected: 
                     await asyncio.sleep(1)
                 if connected is False:
                     # Starting to disconnect
                     if client is not None:
-                        log.warning("Starting to disconnect")
+                        log.warning(f"{TAG}client.disconnect()....")
                         await client.disconnect()
             finally:
-                log.info("canceling health check")
+                log.info(f"{TAG}canceling health check")
                 health_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await health_task
-    log.warning("BLE_thread Stopped Running")
+    log.warning(f"{TAG}Stopped Running")
+
 # =============================== Control functions ================================================= 
 def run():
     asyncio.run(main())
 
-@intercept_ble_call
 def disconnect():
     global connected
-    log.info("BLE_thread: Started Disconnecting")
+    log.info(f"{TAG}Disconencting set the connected to false")
     connected = False
-    
-@intercept_ble_call
+
 def end():
     global running 
-    log.info("Stopping application")
+    log.info(f"{TAG}Stopping the application set the running to false")
     running = False
     disconnect()

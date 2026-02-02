@@ -7,6 +7,7 @@ from logsUI import LogUI
 from logAPI import log
 import tkinter as tk 
 
+
 class App:
     App_name = "Phonotify"
     
@@ -25,9 +26,10 @@ class App:
         return image
 
     def on_exit(self, icon, item):
-        
+        global ble_t
         print("Exiting application")
         pn.end()
+        ble_t.join()        
         print("BLE ending...")
         
         print("Hiding log UI....")
@@ -53,6 +55,7 @@ class App:
 
 if __name__ == "__main__":
     global logUI
+    global ble_t
 
     ble_t = threading.Thread(target=pn.run, daemon=True)
     ble_t.start()

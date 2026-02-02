@@ -5,6 +5,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).parent.parent
 LOG_PATH = BASE_DIR / "logs" / "main.log"
 
+LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+
 # Create logger
 log = logging.getLogger("phonotify")
 log.setLevel(logging.INFO)
@@ -16,7 +18,7 @@ handler = RotatingFileHandler(
     backupCount=1         # keep one old log
 )
 
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+formatter = logging.Formatter("%(asctime)s - [ %(levelname)s ] - %(message)s")
 handler.setFormatter(formatter)
 handler.setLevel
 log.addHandler(handler)

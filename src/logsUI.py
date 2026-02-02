@@ -40,7 +40,7 @@ class LogUI():
         self.text_area.tag_config("error", foreground="red")
         self.text_area.tag_config("info", foreground="blue")
 
-        root.geometry('800x500')
+        root.geometry('1000x800')
 
     def _perform_cleanup(self):
         # print(f"_perform_cleanp running on {threading.get_ident()}")
@@ -63,7 +63,7 @@ class LogUI():
                 root = None
 
     def scrolled_down(self) -> bool:
-        return self.text_area.yview()[1] >= 0.9
+        return self.text_area.yview()[1] >= 0.98
 
     def start_updating_logs(self, readLines:int=0):
 
@@ -76,19 +76,18 @@ class LogUI():
             
             content = f.read() # Read all new content at once
             if content:
-                # Determine which tag to use based on content
-                tag = None
-                if "ERROR" in content.upper():
-                    tag = "error"
-                elif "INFO" in content.upper():
-                    tag = "info "
-
-                # Insert content at the end
-                self.text_area.insert(END, content, tag)
+                # Split content into individual lines
+                lines = content.splitlines(keepends=True)
+                
+                for line in lines:
+                    # Check if this specific line is an error
+                    if "ERROR" in line.upper():
+                        self.text_area.insert(END, line, "error")
+                    else:
+                        self.text_area.insert(END, line)
                 
                 # Update the count of read lines
-                readLines += content.count('\n')
-        
+                readLines += len(lines)
         # if scrolled all the way down follow
         if was_at_bottom: self.text_area.see(END)
         

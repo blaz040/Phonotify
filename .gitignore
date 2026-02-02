@@ -3,3 +3,4 @@ dist/
 *.spec
 __*
 venv/
+logs/
