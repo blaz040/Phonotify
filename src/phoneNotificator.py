@@ -169,7 +169,7 @@ async def scan() -> BLEDevice:
     global scan_counter
     
     
-    log.info(f" {TAG}Scanning for Service UUID: {NOTIFICATION_SERVICE_UUID}")
+    log.info(f"{TAG}\tScanning for Service UUID: {NOTIFICATION_SERVICE_UUID}")
     
     # find_device_by_filter works on both OSs
     device = await BleakScanner.find_device_by_filter(
@@ -179,7 +179,7 @@ async def scan() -> BLEDevice:
     
     if device:
         # On Windows, device.name might be None here, and that's okay!
-        log.info(f" {TAG}Device found at {device.address}")
+        log.info(f"{TAG}\tDevice found at {device.address}")
         return device
     return None
     
@@ -276,7 +276,6 @@ async def main():
     global scan_counter
 
     while running:
-
         # Start Scanning
         device = await scan()
         if device is None: 
@@ -315,6 +314,7 @@ async def main():
 
 # =============================== Control functions ================================================= 
 def run():
+    log.error("STARTED new thread !!!")
     asyncio.run(main())
 
 def disconnect():

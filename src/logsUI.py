@@ -4,11 +4,13 @@ from logAPI import LOG_PATH, log
 import os 
 from constants import IS_LINUX, IS_WINDOWS
 
+TAG = "LOG_UI"
 class LogUI():
+    
     TITLE = "Live Logs"
     UPDATING_LOGS_WAIT_MS = 1000
-    updating_logs_id = None
-
+    updating_logs = False
+    
     def __init__(self):
         root = Tk()
         self.root = root
@@ -65,8 +67,9 @@ class LogUI():
     def scrolled_down(self) -> bool:
         return self.text_area.yview()[1] >= 0.98
 
-    def start_updating_logs(self, readLines:int=0):
-
+    def update_logs(self, readLines=0):
+        # End if stopped
+        if self.updating_logs is False: return
         was_at_bottom = self.scrolled_down()
         
         with open(LOG_PATH, 'r') as f:
@@ -89,13 +92,12 @@ class LogUI():
                 # Update the count of read lines
                 readLines += len(lines)
         # if scrolled all the way down follow
-        if was_at_bottom: self.text_area.see(END)
-        
-        self.updating_logs_id = self.root.after(
-            self.UPDATING_LOGS_WAIT_MS, 
-            self.start_updating_logs, 
-            readLines
-        )  # update every 1 second
+        if was_at_bottom: self.move_to_bottom()
+        self.root.after(
+            self.UPDATING_LOGS_WAIT_MS,
+            self.update_logs,
+            readLines   
+        )
     def move_to_bottom(self):
         self.text_area.see(END)
 
@@ -107,13 +109,21 @@ class LogUI():
         with open(LOG_PATH,'w') as f:
             f.write("")
         # start timer
-        self.start_updating_logs(readLines=0)    
+        self.start_updating_logs()    
     
     def stop_updating_logs(self):
-        if self.updating_logs_id is not None:
+        if self.updating_logs is True:
+            log.info(f"{TAG} Stopped updating logs")
+            self.updating_logs = False
             self.root.after_cancel(self.updating_logs_id)
             self.updating_logs_id = None
-        
+
+    def start_updating_logs(self):
+        if self.updating_logs is False:
+            log.info(f"{TAG} Starting updating logs")
+            self.updating_logs = True
+            self.update_logs()
+       
     def start(self):
         self.start_updating_logs()
         self.root.withdraw()

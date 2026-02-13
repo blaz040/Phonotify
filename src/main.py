@@ -17,7 +17,12 @@ class App:
         thread = threading.Thread(target = self.start)
         thread.daemon = True
         thread.start()
+        
+        ble_t = threading.Thread(target = pn.run, daemon=True)
+        ble_t.start()
+    
         self.thread = thread
+        self.ble_t = ble_t
 
     def create_image(self):
         image = Image.new('RGB', (64, 64), color=(0, 255, 0))
@@ -26,10 +31,9 @@ class App:
         return image
 
     def on_exit(self, icon, item):
-        global ble_t
         print("Exiting application")
         pn.end()
-        ble_t.join()        
+        self.ble_t.join()        
         print("BLE ending...")
         
         print("Hiding log UI....")
@@ -53,16 +57,15 @@ class App:
         
         icon.run()
 
-if __name__ == "__main__":
+def main():
     global logUI
-    global ble_t
-
-    ble_t = threading.Thread(target=pn.run, daemon=True)
-    ble_t.start()
-    
+        
     logUI = LogUI()
 
     app = App(logUI.root)
     
     logUI.start()
 
+
+if __name__ == "__main__":
+    main()
