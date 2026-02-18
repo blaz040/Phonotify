@@ -45,18 +45,22 @@ class App:
 
         icon.stop()
         
-    def on_reconnect(icon, item):
+    def disconnect(icon, item):
         pn.disconnect()
-        
+
+    def scan(icon, item):
+        pn.start_scan()
+
     def show_logs(icon, item):
         logUI.show_window()
         
     def start(self):
         # MENU
         icon = Icon(self.App_name, self.create_image(), self.App_name, tray = _appindicator, menu = Menu(
-            MenuItem("Recconect", self.on_reconnect),
+            MenuItem("Disconnect", self.disconnect),
+            MenuItem("Scan", self.scan),
             MenuItem("Logs" ,self.show_logs, default = True),
-            MenuItem("Exit", self.on_exit)
+            MenuItem("Exit", self.on_exit),
         ))
         
         icon.run()

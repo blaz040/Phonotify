@@ -26,6 +26,7 @@ scan_counter = 0
 HEALTH_CHECK_INTERVAL = 15 # seconds 
 SCAN_DURATION = 3 #seconds
 MAX_SCAN_SLEEP_TIME = 5 * 60
+start_scan_signal = asyncio.Event()
 
 TAG = "BLE THREAD"
 log = init_log(tag=TAG)
@@ -175,8 +176,7 @@ async def subscribing_to_notifications(client:BleakClient):
 async def scan() -> BLEDevice:  
     global scan_counter
     
-    
-    log.info(f"\tScanning for Service UUID: {NOTIFICATION_SERVICE_UUID}")
+    log.info(f"\t{scan_counter}: Scanning for Service UUID: {NOTIFICATION_SERVICE_UUID}")
     
     # find_device_by_filter works on both OSs
     device = await BleakScanner.find_device_by_filter(
@@ -273,6 +273,18 @@ async def periodic_task(client: BleakClient):
     except asyncio.CancelledError:
         log.info(f"Health check task stopped")
 
+# ========================= Smart sleep ====================================================
+async def smart_sleep(name, sleep_time, wakeup_event):
+    log.info(f"[{name}] Going to sleep for {sleep_time}s...")
+    try:
+        # Wait for the event to be set, or timeout after sleep_time
+        await asyncio.wait_for(wakeup_event.wait(), timeout=sleep_time)
+        log.info(f"[{name}] Woke up early on command!")
+    except asyncio.TimeoutError:
+        log.info(f"[{name}] Slept the full duration.")
+    finally:
+        wakeup_event.clear() # Reset for next time if needed
+
 # =============================== Main Loop =================================================
 @intercept_ble_call
 async def main():
@@ -281,6 +293,7 @@ async def main():
     global client
     global connected
     global scan_counter
+    global start_scan_signal
 
     while running:
         # Start Scanning
@@ -288,8 +301,7 @@ async def main():
         if device is None: 
             scan_counter += 1
             sleep_time = min(MAX_SCAN_SLEEP_TIME, 2*scan_counter)
-            log.info(f"Device not found. Sleeping for {sleep_time}s")
-            await asyncio.sleep(sleep_time)
+            await smart_sleep("Scan sleep", sleep_time, start_scan_signal)
             continue
         scan_counter = 0
         
@@ -328,8 +340,15 @@ def disconnect():
     log.info(f"Disconencting set the connected to false")
     connected = False
 
+def start_scan():
+    global start_scan_signal, scan_counter
+    log.info("Starting to Scan early if it is sleeping")
+    scan_counter = 0
+    start_scan_signal.set()
+
 def end():
     global running 
     log.info(f"Stopping the application set the running to false")
     running = False
     disconnect()
+
