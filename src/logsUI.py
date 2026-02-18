@@ -1,10 +1,11 @@
-import threading
 from tkinter import *
-from logAPI import LOG_PATH, log
+from logAPI import LOG_PATH, init_log
 import os 
 from constants import IS_LINUX, IS_WINDOWS
 
-TAG = "LOG_UI"
+TAG = "LOG UI"
+log = init_log(tag=TAG)
+
 class LogUI():
     
     TITLE = "Live Logs"
@@ -42,17 +43,12 @@ class LogUI():
         self.text_area.tag_config("error", foreground="red")
         self.text_area.tag_config("info", foreground="blue")
 
-        root.geometry('1000x800')
+        root.geometry('1300x800')
 
     def _perform_cleanup(self):
-        # print(f"_perform_cleanp running on {threading.get_ident()}")
-        updating_logs_id = self.updating_logs_id
         root = self.root
 
         if root is not None:
-            if updating_logs_id != "":
-                root.after_cancel(updating_logs_id)
-                updating_logs_id = ""
             try:
                 root.quit()
                 root.destroy()
@@ -60,7 +56,8 @@ class LogUI():
                 print("quited root")
             except Exception as e:
                 pass
-                # log.error(f"UI Thread: Destroy failed: {e}")
+                log.error(f"Destroy failed: {e}")
+                print("failed to quit root ")
             finally:
                 root = None
 
@@ -68,8 +65,10 @@ class LogUI():
         return self.text_area.yview()[1] >= 0.98
 
     def update_logs(self, readLines=0):
+
         # End if stopped
         if self.updating_logs is False: return
+        
         was_at_bottom = self.scrolled_down()
         
         with open(LOG_PATH, 'r') as f:
@@ -91,36 +90,41 @@ class LogUI():
                 
                 # Update the count of read lines
                 readLines += len(lines)
+        
         # if scrolled all the way down follow
         if was_at_bottom: self.move_to_bottom()
+
         self.root.after(
             self.UPDATING_LOGS_WAIT_MS,
             self.update_logs,
             readLines   
         )
+
     def move_to_bottom(self):
         self.text_area.see(END)
 
     def clear_log(self):
         # Stop update logs timer
         self.stop_updating_logs()
+
         #reset values
         self.text_area.delete('1.0', END) # Text uses 1.0 for start
         with open(LOG_PATH,'w') as f:
             f.write("")
+
         # start timer
         self.start_updating_logs()    
     
     def stop_updating_logs(self):
         if self.updating_logs is True:
-            log.info(f"{TAG} Stopped updating logs")
+            log.info(f"Stopped updating logs")
             self.updating_logs = False
             self.root.after_cancel(self.updating_logs_id)
             self.updating_logs_id = None
 
     def start_updating_logs(self):
         if self.updating_logs is False:
-            log.info(f"{TAG} Starting updating logs")
+            log.info(f"Starting updating logs")
             self.updating_logs = True
             self.update_logs()
        
@@ -134,8 +138,9 @@ class LogUI():
         self.root.withdraw()
 
     def show_window(self):
-        self.start_updating_logs()
         self.root.deiconify()
+        self.move_to_bottom()
+        self.start_updating_logs()
 
         # Support for linux and windows 
         if IS_LINUX:
@@ -149,4 +154,4 @@ class LogUI():
             self.root.focus_force()
 
     def end(self):
-        self.root.after(100, self._perform_cleanup)
+        self.root.after(10, self._perform_cleanup)

@@ -7,10 +7,6 @@ LOG_PATH = BASE_DIR / "logs" / "main.log"
 
 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-# Create logger
-log = logging.getLogger("phonotify")
-log.setLevel(logging.INFO)
-
 # Rotating file handler: max 50 KB, keep 1 backup
 handler = RotatingFileHandler(
     LOG_PATH,
@@ -18,11 +14,21 @@ handler = RotatingFileHandler(
     backupCount=1         # keep one old log
 )
 
-formatter = logging.Formatter("%(asctime)s - [ %(levelname)s ] - %(message)s")
+#formatter = logging.Formatter("%(asctime)s - [ %(levelname)s ] - %(message)s")
+#handler.setFormatter(formatter)
+formatter = logging.Formatter("%(asctime)s - [ %(levelname)s ] - [%(tag)s] - %(message)s")
 handler.setFormatter(formatter)
 handler.setLevel
+
+# Create logger
+log = logging.getLogger("phonotify")
+log.setLevel(logging.INFO)
 log.addHandler(handler)
 
 # Example usage
 log.info("Logger initialized")
 
+def init_log(tag: str = "Default") -> logging.LoggerAdapter:
+    static_tag = {"tag": f"{tag}"}
+    tmp_log = logging.LoggerAdapter(log, static_tag)
+    return tmp_log 

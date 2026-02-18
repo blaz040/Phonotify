@@ -4,7 +4,7 @@ import threading
 import asyncio
 import phoneNotificator as pn
 from logsUI import LogUI
-from logAPI import log
+from logAPI import init_log
 import tkinter as tk 
 
 
@@ -31,11 +31,15 @@ class App:
         return image
 
     def on_exit(self, icon, item):
+        log.info("Exiting application")
         print("Exiting application")
+
         pn.end()
         self.ble_t.join()        
-        print("BLE ending...")
+        log.info("BLE ended...")
+        print("BLE ending")
         
+        log.info("Hiding log UI....")
         print("Hiding log UI....")
         logUI.end()
 
@@ -59,7 +63,10 @@ class App:
 
 def main():
     global logUI
-        
+    global log
+
+    log = init_log("MAIN")
+
     logUI = LogUI()
 
     app = App(logUI.root)
