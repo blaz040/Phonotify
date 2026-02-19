@@ -25,9 +25,6 @@ log = logging.getLogger("phonotify")
 log.setLevel(logging.INFO)
 log.addHandler(handler)
 
-# Example usage
-log.info("Logger initialized")
-
 def init_log(tag: str = "Default") -> logging.LoggerAdapter:
     static_tag = {"tag": f"{tag}"}
     tmp_log = logging.LoggerAdapter(log, static_tag)

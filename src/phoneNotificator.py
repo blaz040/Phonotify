@@ -65,6 +65,12 @@ characteristics = {
     DISCONNECT_CHARACTERISTIC_UUID: "disconnect",
     HEALTH_CHECK_CHARACTERISTIC_UUID: "health check"
 }
+#======================================== Status Callback function ====================================================================
+connection_callback = lambda: None
+
+disconnect_callback = lambda : None
+
+scanning_callback = lambda : None
 #======================================= Intercptor ==========================================================
 def intercept_ble_call(func):
     MAX_LOG_TEXT_SIZE = 70
@@ -96,7 +102,6 @@ def showNotification(title:str, context:str, icon_path:str, duration:str="short"
         app_icon=str(icon_path),  
         timeout=2  # seconds
     )
-
 # =============================== Notify Handle functions =================================================
 @intercept_ble_call
 async def notification_handler(sender: BleakGATTCharacteristic, data):
@@ -126,8 +131,8 @@ async def notification_handler(sender: BleakGATTCharacteristic, data):
 async def disconnect_notify_callback(sender: BleakGATTCharacteristic, data): 
     global client
     
-    log.info(f"Sending disconect acknowledge message")
-    await client.write_gatt_char(sender, bytearray("ACK",'utf-8'),response=False)
+    #log.info(f"Sending disconect acknowledge message")
+    #await client.write_gatt_char(sender, bytearray("ACK",'utf-8'),response=False)
     
     await client.disconnect()
 
@@ -177,7 +182,7 @@ async def scan() -> BLEDevice:
     global scan_counter
     
     log.info(f"\t{scan_counter}: Scanning for Service UUID: {NOTIFICATION_SERVICE_UUID}")
-    
+    scanning_callback()
     # find_device_by_filter works on both OSs
     device = await BleakScanner.find_device_by_filter(
         lambda d, ad: NOTIFICATION_SERVICE_UUID in ad.service_uuids,
@@ -223,9 +228,9 @@ def disconnected_callback(client: BleakClient):
     
     connected = False
     log.warning(f"Disconnected from {client.name}:{client.address}")
+    disconnect_callback()
     showNotification("Disconnected ",f"Disconnected from {client.name}:{client.address}", CROSS_ICON_PATH)
     
-# Connecting....
 @intercept_ble_call
 async def connect(client:BleakClient, device:BLEDevice) -> bool:
     address = device.address
@@ -238,6 +243,7 @@ async def connect(client:BleakClient, device:BLEDevice) -> bool:
         return False
     log.info(f"Connected: {address} : {client.is_connected}")
 
+    connection_callback()
     showNotification("Connected ",f"connected to {PHONE_NAME}:{address}", CHECK_ICON_PATH)
     
     return True
@@ -341,9 +347,8 @@ def disconnect():
     connected = False
 
 def start_scan():
-    global start_scan_signal, scan_counter
+    global start_scan_signal
     log.info("Starting to Scan early if it is sleeping")
-    scan_counter = 0
     start_scan_signal.set()
 
 def end():
