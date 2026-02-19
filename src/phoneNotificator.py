@@ -70,7 +70,7 @@ connection_callback = lambda: None
 
 disconnect_callback = lambda : None
 
-scanning_callback = lambda : None
+scanning_callback = lambda scanning: None
 #======================================= Intercptor ==========================================================
 def intercept_ble_call(func):
     MAX_LOG_TEXT_SIZE = 70
@@ -182,7 +182,7 @@ async def scan() -> BLEDevice:
     global scan_counter
     
     log.info(f"\t{scan_counter}: Scanning for Service UUID: {NOTIFICATION_SERVICE_UUID}")
-    scanning_callback()
+    scanning_callback(scanning=True)
     # find_device_by_filter works on both OSs
     device = await BleakScanner.find_device_by_filter(
         lambda d, ad: NOTIFICATION_SERVICE_UUID in ad.service_uuids,
@@ -281,6 +281,7 @@ async def periodic_task(client: BleakClient):
 
 # ========================= Smart sleep ====================================================
 async def smart_sleep(name, sleep_time, wakeup_event):
+    scanning_callback(scanning=False)
     log.info(f"[{name}] Going to sleep for {sleep_time}s...")
     try:
         # Wait for the event to be set, or timeout after sleep_time

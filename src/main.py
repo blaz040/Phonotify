@@ -23,11 +23,17 @@ class App:
         
         self.pn_init()
     
-    
+    def scanning_callback(self, scanning: bool = True):
+        status = "Scanning"
+        if scanning is False:
+            status = "Sleeping"
+
+        self.update_status(status=status) 
+
     def pn_init(self):
         pn.connection_callback = lambda: self.update_status(status="Connected")
         pn.disconnect_callback = lambda: self.update_status(status="Disconnected")
-        pn.scanning_callback = lambda: self.update_status(status="Scanning...")
+        pn.scanning_callback = self.scanning_callback
         
         self.icon_ready.wait()
 

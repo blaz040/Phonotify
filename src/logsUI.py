@@ -119,8 +119,8 @@ class LogUI():
         if self.updating_logs is True:
             log.info(f"Stopped updating logs")
             self.updating_logs = False
-            self.root.after_cancel(self.updating_logs_id)
-            self.updating_logs_id = None
+            # self.root.after_cancel(self.updating_logs_id)
+            # self.updating_logs_id = None
 
     def start_updating_logs(self):
         if self.updating_logs is False:
