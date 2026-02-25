@@ -1,7 +1,9 @@
 from tkinter import *
 from logAPI import LOG_PATH, init_log
+from PIL import Image, ImageTk
+from pathlib import Path
 import os 
-from constants import IS_LINUX, IS_WINDOWS
+from config import *
 
 TAG = "LOG UI"
 log = init_log(tag=TAG)
@@ -11,7 +13,7 @@ class LogUI():
     TITLE = "Live Logs"
     UPDATING_LOGS_WAIT_MS = 1000
     updating_logs = False
-    
+
     def __init__(self):
         root = Tk()
         self.root = root
@@ -43,6 +45,10 @@ class LogUI():
         self.text_area.tag_config("error", foreground="red")
         self.text_area.tag_config("info", foreground="blue")
 
+        I = Image.open(app_icon)
+        photo = ImageTk.PhotoImage(I)
+        root.iconphoto(True, photo)
+        
         root.geometry('1300x800')
 
     def _perform_cleanup(self):

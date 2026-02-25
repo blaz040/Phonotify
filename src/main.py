@@ -7,11 +7,11 @@ from logsUI import LogUI
 from logAPI import init_log
 import tkinter as tk 
 from pathlib import Path
+from config import *
 
 class App:
     App_name = "Phonotify"
-    app_icon = Path(__file__).parent.parent / "icons" / "app" / "phonotify_logo_minimalistic.png"
-
+    
     def __init__(self, root):
         self.root = root
         self.current_status = "Disconnected"
@@ -45,8 +45,8 @@ class App:
     
     def create_image(self):
 
-        image = Image.open(self.app_icon)
-        if not self.app_icon.exists:
+        image = Image.open(app_icon)
+        if not app_icon.exists:
             image = Image.new('RGB', (64, 64), color=(0, 255, 0))
             draw = ImageDraw.Draw(image)
             draw.rectangle((16, 16, 48, 48), fill='white')
