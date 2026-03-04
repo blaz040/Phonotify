@@ -55,6 +55,7 @@ Description=Phonotify Tray Application
 After=network.target
 
 [Service]
+ExecStartPre=/usr/bin/sleep 60
 Type=simple
 WorkingDirectory=$PROJECT_DIR
 ExecStart=$PYTHON_BIN $PROJECT_DIR/$CODE_DIR/$MAIN_SCRIPT
@@ -75,7 +76,7 @@ EOF
 echo "Reloading systemd and starting service..."
 systemctl --user daemon-reload
 systemctl --user enable "$SERVICE_NAME.service"
-systemctl --user restart "$SERVICE_NAME.service"
+systemctl --user restart "$SERVICE_NAME.service" &
 
 echo "-------------------------------------------------------"
 echo "Installation      Complete!"
