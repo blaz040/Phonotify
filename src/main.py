@@ -79,14 +79,18 @@ class App:
     def get_status_text(self, item):
         return f"Status: {self.current_status}"
 
-    def update_status(self, status:str):
+    # def update_status(self, status:str):
+    #     self.current_status = status
+    #     self.icon.update_menu()
+
+    def update_status(self, status: str):
         self.current_status = status
-        self.icon.update_menu()
+        self.icon.title = f"{self.App_name} — {status}"  # updates tooltip/title, no flash
 
     def start(self):
         # MENU
         self.icon = Icon(self.App_name, self.create_image(), self.App_name, tray = _appindicator, menu = Menu(
-            MenuItem(self.get_status_text, action=None, enabled=False),
+            #MenuItem(self.get_status_text, action=None, enabled=False),
             MenuItem("Disconnect", self.disconnect),
             MenuItem("Scan", self.scan),
             MenuItem("Logs" ,self.show_logs, default = True),
