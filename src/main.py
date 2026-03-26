@@ -45,8 +45,11 @@ class App:
     
     def create_image(self):
 
-        image = Image.open(app_icon)
-        if not app_icon.exists:
+        try:
+            if not app_icon.exists():
+                raise FileNotFoundError("app icon not found")
+            image = Image.open(app_icon)
+        except Exception:
             image = Image.new('RGB', (64, 64), color=(0, 255, 0))
             draw = ImageDraw.Draw(image)
             draw.rectangle((16, 16, 48, 48), fill='white')
@@ -89,13 +92,24 @@ class App:
 
     def start(self):
         # MENU
-        self.icon = Icon(self.App_name, self.create_image(), self.App_name, tray = _appindicator, menu = Menu(
-            #MenuItem(self.get_status_text, action=None, enabled=False),
-            MenuItem("Disconnect", self.disconnect),
-            MenuItem("Scan", self.scan),
-            MenuItem("Logs" ,self.show_logs, default = True),
-            MenuItem("Exit", self.on_exit),
-        ))
+        # Use appindicator tray backend only on Linux; let pystray pick default on other OSes
+        if IS_LINUX:
+            self.icon = Icon(self.App_name, self.create_image(), self.App_name, tray = _appindicator, menu = Menu(
+                #MenuItem(self.get_status_text, action=None, enabled=False),
+                MenuItem("Disconnect", self.disconnect),
+                MenuItem("Scan", self.scan),
+                MenuItem("Logs" ,self.show_logs, default = True),
+                MenuItem("Exit", self.on_exit),
+            ))
+        else:
+            self.icon = Icon(self.App_name, self.create_image(), self.App_name, menu = Menu(
+                #MenuItem(self.get_status_text, action=None, enabled=False),
+                MenuItem("Disconnect", self.disconnect),
+                MenuItem("Scan", self.scan),
+                MenuItem("Logs" ,self.show_logs, default = True),
+                MenuItem("Exit", self.on_exit),
+            ))
+        
         self.icon_ready.set()
         
         self.icon.run()

@@ -118,6 +118,12 @@ async def notification_handler(sender: BleakGATTCharacteristic, data):
         res = app(package)
         icon = requests.get(res["icon"])
 
+        # Ensure icon folder exists before writing (cross-platform safe)
+        try:
+            ICON_FOLDER_DIR.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+
         with open(APP_ICON_PATH, "wb") as f:
             f.write(icon.content)
         icon_path = APP_ICON_PATH

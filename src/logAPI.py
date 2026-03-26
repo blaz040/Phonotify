@@ -18,7 +18,7 @@ handler = RotatingFileHandler(
 #handler.setFormatter(formatter)
 formatter = logging.Formatter("%(asctime)s - [ %(levelname)s ] - [%(tag)s] - %(message)s")
 handler.setFormatter(formatter)
-handler.setLevel
+handler.setLevel(logging.INFO)
 
 # Create logger
 log = logging.getLogger("phonotify")
