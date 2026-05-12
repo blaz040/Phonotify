@@ -14,6 +14,7 @@ import time
 
 # =============================== Main variables ================================================= 
 NOTIFICATION_NAME = "Notification from Phone"
+AUTHENTICATE_PASSWORD = "phonotify123"
 # deprecated
 PHONE_NAME = "phServer"
 
@@ -54,7 +55,7 @@ PACKAGE_CHARACTERISTIC_UUID             = "91d76003-ac7b-4d70-ab3a-8b87a357239e"
 NOTIFY_COMPLETE_CHARACTERISTIC_UUID     = "91d76004-ac7b-4d70-ab3a-8b87a357239e"
 DISCONNECT_CHARACTERISTIC_UUID          = "91d76005-ac7b-4d70-ab3a-8b87a357239e"
 HEALTH_CHECK_CHARACTERISTIC_UUID        = "91d76006-ac7b-4d70-ab3a-8b87a357239e"
-
+AUTHENTICATE_CHARACTERISTIC_UUID        = "91d76007-ac7b-4d70-ab3a-8b87a357239e"
 # =============================== Characteristics ================================================= 
 # UUID to characteristic name 
 characteristics = {
@@ -63,7 +64,8 @@ characteristics = {
     PACKAGE_CHARACTERISTIC_UUID: "package name",
     NOTIFY_COMPLETE_CHARACTERISTIC_UUID: "notifier",
     DISCONNECT_CHARACTERISTIC_UUID: "disconnect",
-    HEALTH_CHECK_CHARACTERISTIC_UUID: "health check"
+    HEALTH_CHECK_CHARACTERISTIC_UUID: "health check",
+    AUTHENTICATE_CHARACTERISTIC_UUID: "authenticate",
 }
 #======================================== Status Callback function ====================================================================
 connection_callback = lambda: None
@@ -244,6 +246,11 @@ async def connect(client:BleakClient, device:BLEDevice) -> bool:
     log.info(f"Connecting... to {PHONE_NAME}:{address}")
     try:
         await client.connect()
+        authenticated = await authenticate(client)
+        if not authenticated:
+            log.warning("Authentication failed; disconnecting")
+            await client.disconnect()
+            return False
     except Exception as e:
         log.info(f"Connection Error {e}")
         return False
@@ -253,6 +260,30 @@ async def connect(client:BleakClient, device:BLEDevice) -> bool:
     showNotification("Connected ",f"connected to {PHONE_NAME}:{address}", CHECK_ICON_PATH)
     
     return True
+
+async def authenticate(client: BleakClient) -> bool:
+    loop = asyncio.get_event_loop()
+    fut = loop.create_future()
+
+    def handler(sender, data):
+        loop.call_soon_threadsafe(fut.set_result, bytes(data))
+
+    await client.start_notify(AUTHENTICATE_CHARACTERISTIC_UUID, handler)
+
+    await client.write_gatt_char(
+        AUTHENTICATE_CHARACTERISTIC_UUID,
+        bytearray(AUTHENTICATE_PASSWORD, 'utf-8'),
+        response=True  # still send with response so Android's sendResponse is ACK'd
+    )
+
+    try:
+        result = await asyncio.wait_for(fut, timeout=5.0)
+        await client.stop_notify(AUTHENTICATE_CHARACTERISTIC_UUID)
+        return result[0] == 0x01
+    except asyncio.TimeoutError:
+        log.error("Auth timed out")
+        await client.stop_notify(AUTHENTICATE_CHARACTERISTIC_UUID)
+        return False
 # =============================== Health Check ==================================================================
 async def health_check(client: BleakClient):
     global HEALTH_CHECK_INTERVAL
