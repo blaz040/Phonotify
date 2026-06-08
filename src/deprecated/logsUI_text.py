@@ -1,5 +1,5 @@
 from tkinter import *
-from logAPI import LOG_PATH, log
+from log.logAPI import LOG_PATH, log
 import os 
 # ============================================================================================
 # This is old version of logsUI do not use it 

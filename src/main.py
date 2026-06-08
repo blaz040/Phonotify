@@ -3,8 +3,8 @@ from PIL import Image, ImageDraw
 import threading
 import asyncio
 import phoneNotificator as pn
-from logsUI import LogUI
-from logAPI import init_log
+from log.logsUI import LogUI
+from log.logAPI import init_log
 import tkinter as tk 
 from pathlib import Path
 from config import *
@@ -66,7 +66,8 @@ class App:
         
         log.info("Hiding log UI....")
         print("Hiding log UI....")
-        logUI.end()
+        # Ensure Tk actions run on the Tk main thread
+        self.root.after(0, logUI.end)
 
         self.icon.stop()
         
@@ -76,8 +77,9 @@ class App:
     def scan(self, icon, item):
         pn.start_scan()
 
-    def show_logs(icon, item):
-        logUI.show_window()
+    def show_logs(self, icon, item):
+        # Ensure Tk actions run on the Tk main thread
+        self.root.after(0, logUI.show_window)
 
     def get_status_text(self, item):
         return f"Status: {self.current_status}"

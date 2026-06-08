@@ -1,8 +1,9 @@
 from tkinter import *
-from logAPI import LOG_PATH, init_log
+from log.logAPI import LOG_PATH, init_log
 from PIL import Image, ImageTk
 from pathlib import Path
-import os 
+import os
+import shutil
 from config import *
 
 TAG = "LOG UI"
@@ -149,7 +150,11 @@ class LogUI():
         # Support for linux and windows 
         if IS_LINUX:
             # Cinnamon/GNOME focus
-            os.system(f"wmctrl -a '{self.TITLE}'")
+            if shutil.which("wmctrl"):
+                os.system(f"wmctrl -a '{self.TITLE}'")
+            else:
+                self.root.lift()
+                self.root.focus_force()
         elif IS_WINDOWS:
             # Windows focus logic
             self.root.state('normal')

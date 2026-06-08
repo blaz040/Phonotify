@@ -5,7 +5,7 @@ import contextlib
 from plyer import notification
 import requests
 from google_play_scraper import app
-from logAPI import init_log
+from log.logAPI import init_log
 from pathlib import Path
 from pystray import Icon
 from PIL import Image
