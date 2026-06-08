@@ -230,10 +230,8 @@ async def printServices(client:BleakClient):
             log.info(f"\tCharacteristic {c}")
 
 # =============================== Connection ================================================= 
-@intercept_ble_call
 def disconnected_callback(client: BleakClient): 
     global connected 
-    
     connected = False
     log.warning(f"Disconnected from {client.name}:{client.address}")
     disconnect_callback()
@@ -260,33 +258,44 @@ async def connect(client:BleakClient, device:BLEDevice) -> bool:
     showNotification("Connected ",f"connected to {PHONE_NAME}:{address}", CHECK_ICON_PATH)
     
     return True
-
 async def authenticate(client: BleakClient) -> bool:
+    log.info("Starting authentication...")
     loop = asyncio.get_event_loop()
     fut = loop.create_future()
 
     def handler(sender, data):
+        log.info(f"Auth notification received: {data.hex()}")
         loop.call_soon_threadsafe(fut.set_result, bytes(data))
 
     await client.start_notify(AUTHENTICATE_CHARACTERISTIC_UUID, handler)
+    log.info("Subscribed to auth characteristic, sending password...")
 
     await client.write_gatt_char(
         AUTHENTICATE_CHARACTERISTIC_UUID,
         bytearray(AUTHENTICATE_PASSWORD, 'utf-8'),
-        response=True  # still send with response so Android's sendResponse is ACK'd
+        response=True
     )
+    log.info("Password sent, waiting for response...")
 
     try:
         result = await asyncio.wait_for(fut, timeout=5.0)
+        log.info(f"Auth result bytes: {result.hex()}")
         await client.stop_notify(AUTHENTICATE_CHARACTERISTIC_UUID)
-        return result[0] == 0x01
+        success = result[0] == 0x01
+        log.info(f"Authentication {'SUCCESS' if success else 'FAILED'}")
+        return success
     except asyncio.TimeoutError:
-        log.error("Auth timed out")
+        log.error("Auth timed out — no notification received from Android")
         await client.stop_notify(AUTHENTICATE_CHARACTERISTIC_UUID)
         return False
 # =============================== Health Check ==================================================================
 async def health_check(client: BleakClient):
     global HEALTH_CHECK_INTERVAL
+    
+    if not client.is_connected:
+        log.warning("Health check skipped: not conencted")
+        return
+    
     try:
         await asyncio.wait_for( 
             client.write_gatt_char(
@@ -301,7 +310,7 @@ async def health_check(client: BleakClient):
     except asyncio.TimeoutError:    
         log.info(f"Health check: DOWN")
     except BleakError as e: 
-        log.info(f"Health check: ERROR ")
+        log.info(f"Health check: ERROR {e}")
         disconnect()
 
 async def periodic_task(client: BleakClient):
