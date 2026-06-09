@@ -1,166 +1,176 @@
-from tkinter import *
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QTextEdit, QMenuBar, QAction, QScrollBar
+)
+from PyQt5.QtGui import QFont, QTextCharFormat, QColor, QIcon
+from PyQt5.QtCore import Qt, QTimer
 from log.logAPI import LOG_PATH, init_log
-from PIL import Image, ImageTk
-from pathlib import Path
 import os
 import shutil
-from config import *
+import sys
+from config import IS_LINUX, IS_WINDOWS, app_icon
 
 TAG = "LOG UI"
 log = init_log(tag=TAG)
 
-class LogUI():
-    
+
+class LogUI(QMainWindow):
+
     TITLE = "Live Logs"
     UPDATING_LOGS_WAIT_MS = 1000
     updating_logs = False
 
     def __init__(self):
-        root = Tk()
-        self.root = root
-        
-        root.title(self.TITLE)
-        root.protocol("WM_DELETE_WINDOW", self.close_window)
-        
-        #Creating Menubar
-        menubar = Menu(root)
-        menubar.add_command(label="Clear Logs", command=self.clear_log)
-        menubar.add_command(label="Move to end", command=self.move_to_bottom)
-        root.config(menu=menubar)
+        # Ensure a QApplication instance exists
+        self.app = QApplication.instance() or QApplication(sys.argv)
 
-        scrollbar = Scrollbar(root)
-        scrollbar.pack(side=RIGHT, fill=Y)
-        
-        # tabs='0.5i' sets a tab stop every 0.5 inches
-        self.text_area = Text(root, 
-                              yscrollcommand=scrollbar.set, 
-                              font="TkFixedFont", 
-                              padx=10, 
-                              pady=10,
-                              tabs='1i')
-        
-        self.text_area.pack(side=LEFT, fill=BOTH, expand=True)
-        scrollbar.config(command=self.text_area.yview)
+        super().__init__()
+        self.setWindowTitle(self.TITLE)
+        self.resize(1300, 800)
+        self.setWindowIcon(QIcon(str(app_icon)))
 
-        # Define styles (tags)
-        self.text_area.tag_config("error", foreground="red")
-        self.text_area.tag_config("info", foreground="blue")
+        # Timer for periodic log updates
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._timer_tick)
+        self._read_lines = 0
 
-        I = Image.open(app_icon)
-        photo = ImageTk.PhotoImage(I)
-        root.iconphoto(True, photo)
-        
-        root.geometry('1300x800')
+        # Menu bar
+        menubar = self.menuBar()
+        clear_action = QAction("Clear Logs", self)
+        clear_action.triggered.connect(self.clear_log)
+        menubar.addAction(clear_action)
+
+        move_action = QAction("Move to end", self)
+        move_action.triggered.connect(self.move_to_bottom)
+        menubar.addAction(move_action)
+
+        # Text area
+        self.text_area = QTextEdit(self)
+        self.text_area.setReadOnly(True)
+        self.text_area.setFont(QFont("Monospace", 10))
+        self.text_area.document().setDefaultStyleSheet(
+            "body { padding: 10px; }"
+        )
+        self.setCentralWidget(self.text_area)
+
+        # Text formats for error / info colouring
+        self._fmt_error = QTextCharFormat()
+        self._fmt_error.setForeground(QColor("red"))
+
+        self._fmt_info = QTextCharFormat()
+        self._fmt_info.setForeground(QColor("blue"))
+
+        self._fmt_normal = QTextCharFormat()  # default foreground
+
+    # ------------------------------------------------------------------ #
+    # Internal helpers                                                     #
+    # ------------------------------------------------------------------ #
+
+    def closeEvent(self, event):
+        """Called when the user clicks the window's X button."""
+        event.ignore()
+        self.close_window()
+
+    def _scrolled_down(self) -> bool:
+        sb = self.text_area.verticalScrollBar()
+        return sb.value() >= sb.maximum() - 4   # small tolerance
+
+    def _timer_tick(self):
+        """Slot connected to the QTimer; delegates to update_logs."""
+        self.update_logs(self._read_lines)
 
     def _perform_cleanup(self):
-        root = self.root
+        try:
+            self.close()
+            self.destroy()
+        except Exception as e:
+            log.error(f"Destroy failed: {e}")
 
-        if root is not None:
-            try:
-                root.quit()
-                root.destroy()
-                root = None
-                print("quited root")
-            except Exception as e:
-                pass
-                log.error(f"Destroy failed: {e}")
-                print("failed to quit root ")
-            finally:
-                root = None
+    # ------------------------------------------------------------------ #
+    # Public API (matches original LogUI interface)                       #
+    # ------------------------------------------------------------------ #
 
     def scrolled_down(self) -> bool:
-        return self.text_area.yview()[1] >= 0.98
+        return self._scrolled_down()
 
-    def update_logs(self, readLines=0):
+    def update_logs(self, readLines: int = 0):
+        if not self.updating_logs:
+            return
 
-        # End if stopped
-        if self.updating_logs is False: return
-        
-        was_at_bottom = self.scrolled_down()
-        
-        with open(LOG_PATH, 'r') as f:
-            # Skip old lines
+        was_at_bottom = self._scrolled_down()
+
+        with open(LOG_PATH, "r") as f:
             for _ in range(readLines):
                 f.readline()
-            
-            content = f.read() # Read all new content at once
-            if content:
-                # Split content into individual lines
-                lines = content.splitlines(keepends=True)
-                
-                for line in lines:
-                    # Check if this specific line is an error
-                    if "ERROR" in line.upper():
-                        self.text_area.insert(END, line, "error")
-                    else:
-                        self.text_area.insert(END, line)
-                
-                # Update the count of read lines
-                readLines += len(lines)
-        
-        # if scrolled all the way down follow
-        if was_at_bottom: self.move_to_bottom()
+            content = f.read()
 
-        self.root.after(
-            self.UPDATING_LOGS_WAIT_MS,
-            self.update_logs,
-            readLines   
-        )
+        if content:
+            lines = content.splitlines(keepends=True)
+            cursor = self.text_area.textCursor()
+            cursor.movePosition(cursor.End)
+
+            for line in lines:
+                if "ERROR" in line.upper():
+                    cursor.insertText(line, self._fmt_error)
+                else:
+                    cursor.insertText(line, self._fmt_normal)
+
+            readLines += len(lines)
+
+        self._read_lines = readLines
+
+        if was_at_bottom:
+            self.move_to_bottom()
 
     def move_to_bottom(self):
-        self.text_area.see(END)
+        sb = self.text_area.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
     def clear_log(self):
-        # Stop update logs timer
         self.stop_updating_logs()
-
-        #reset values
-        self.text_area.delete('1.0', END) # Text uses 1.0 for start
-        with open(LOG_PATH,'w') as f:
+        self.text_area.clear()
+        self._read_lines = 0
+        with open(LOG_PATH, "w") as f:
             f.write("")
+        self.start_updating_logs()
 
-        # start timer
-        self.start_updating_logs()    
-    
     def stop_updating_logs(self):
-        if self.updating_logs is True:
-            log.info(f"Stopped updating logs")
+        if self.updating_logs:
+            log.info("Stopped updating logs")
             self.updating_logs = False
+            self._timer.stop()
 
     def start_updating_logs(self):
-        if self.updating_logs is False:
-            log.info(f"Starting updating logs")
+        if not self.updating_logs:
+            log.info("Starting updating logs")
             self.updating_logs = True
-            self.update_logs()
-       
+            self.update_logs(self._read_lines)          # immediate first read
+            self._timer.start(self.UPDATING_LOGS_WAIT_MS)
+
     def start(self):
         self.start_updating_logs()
-        self.root.withdraw()
-        self.root.mainloop()
+        self.hide()
+        self.app.exec_()
 
     def close_window(self):
         self.stop_updating_logs()
-        self.root.withdraw()
+        self.hide()
 
     def show_window(self):
-        self.root.deiconify()
+        self.show()
+        self.raise_()
         self.move_to_bottom()
         self.start_updating_logs()
 
-        # Support for linux and windows 
         if IS_LINUX:
-            # Cinnamon/GNOME focus
             if shutil.which("wmctrl"):
                 os.system(f"wmctrl -a '{self.TITLE}'")
             else:
-                self.root.lift()
-                self.root.focus_force()
+                self.activateWindow()
         elif IS_WINDOWS:
-            # Windows focus logic
-            self.root.state('normal')
-            self.root.attributes('-topmost', True)
-            self.root.attributes('-topmost', False)
-            self.root.focus_force()
+            self.setWindowState(
+                (self.windowState() & ~Qt.WindowMinimized) | Qt.WindowActive
+            )
+            self.activateWindow()
 
     def end(self):
-        self.root.after(10, self._perform_cleanup)
+        QTimer.singleShot(10, self._perform_cleanup)

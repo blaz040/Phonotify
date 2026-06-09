@@ -6,7 +6,7 @@ PROJECT_DIR=$(pwd)
 CODE_DIR="src"
 MAIN_SCRIPT="main.py"
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
-PYTHON_DEPENDENCIES="requirements.txt"
+# PYTHON_DEPENDENCIES="requirements.txt"
 
 echo "Installing System Dependencies (needs sudo)..."
 # Arch equivalents: python-gobject for gi, libappindicator-gtk3 for tray support
@@ -33,31 +33,33 @@ if [[ -n "$VIRTUAL_ENV" ]]; then
         echo "Venv recreated at $VIRTUAL_ENV"
     fi
 elif [[ -f "venv/bin/python3" ]]; then
-    PYTHON_BIN="$PROJECT_DIR/venv/bin/python3"
+    PYTHON_BIN="$PROJECT_DIR/.venv/bin/python3"
     echo "Found venv folder: Using $PYTHON_BIN"
-    if ! venv_has_system_site_packages "$PROJECT_DIR/venv"; then
+    if ! venv_has_system_site_packages "$PROJECT_DIR/.venv"; then
         echo "WARNING: Existing venv lacks --system-site-packages (gi/gobject won't be accessible)."
         echo "Recreating venv with --system-site-packages..."
-        rm -rf "$PROJECT_DIR/venv"
-        $(which python3) -m venv --system-site-packages "$PROJECT_DIR/venv"
-        echo "Venv recreated at $PROJECT_DIR/venv"
+        rm -rf "$PROJECT_DIR/.venv"
+        $(which python3) -m venv --system-site-packages "$PROJECT_DIR/.venv"
+        echo "Venv recreated at $PROJECT_DIR/.venv"
     fi
 else
     echo "No venv detected"
     echo "Creating new venv with --system-site-packages..."
     # --system-site-packages is required on Arch so gi/gobject (pacman-managed) is accessible in venv
-    $PYTHON_BIN -m venv --system-site-packages venv
-    PYTHON_BIN="$PROJECT_DIR/venv/bin/python3"
+    uv venv --system-site-packages
+    #$PYTHON_BIN -m venv --system-site-packages venv
+    PYTHON_BIN="$PROJECT_DIR/.venv/bin/python3"
     echo "Using $PYTHON_BIN"
 fi
 
 echo "Installing Python dependencies..."
-if [[ -f "$PYTHON_DEPENDENCIES" ]]; then
-    $PYTHON_BIN -m pip install -r "$PYTHON_DEPENDENCIES"
-else
-    echo "ERROR: No $PYTHON_DEPENDENCIES file found"
-    exit 1
-fi
+#if [[ -f "$PYTHON_DEPENDENCIES" ]]; then
+uv sync 
+#    $PYTHON_BIN -m pip install -r "$PYTHON_DEPENDENCIES"
+# else
+#    echo "ERROR: No $PYTHON_DEPENDENCIES file found"
+#    exit 1
+# fi
 
 # Quick sanity check for gi
 if ! $PYTHON_BIN -c "import gi" 2>/dev/null; then

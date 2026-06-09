@@ -81,19 +81,19 @@ def intercept_ble_call(func):
     async def wrapper(*args, **kwargs):
        
         text = f"=== Running {func.__name__} "
-        log.info(f"{text:=<{MAX_LOG_TEXT_SIZE}}")
+        log.debug(f"{text:=<{MAX_LOG_TEXT_SIZE}}")
         start_time = time.perf_counter()
         try:
             result = await func(*args, **kwargs)
             return result
         except Exception as e:
-            log.info(f"Intercepted error in {func.__name__}: {e}")
-            raise
+            log.error(f"Intercepted error in {func.__name__}: {e}")
+            raise Exception(f"Error caught: {e}")
         finally:
             end_time = time.perf_counter()
 
             text = f"=== Finished {func.__name__} in {end_time - start_time:.4f}s "
-            log.info(f"{text:=<{MAX_LOG_TEXT_SIZE}}")
+            log.debug(f"{text:=<{MAX_LOG_TEXT_SIZE}}")
     return wrapper
 # =============================== Help funcitions =================================================
 def showNotification(title:str, context:str, icon_path:str, duration:str="short"):
